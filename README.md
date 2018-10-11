@@ -2,7 +2,9 @@
 ---
 #### _Three Stage Course Material Project - Restaurant Reviews_
 
-## Project Stage 2
+## Project Stage 3
+
+## To see fullly optimized app please run the production build and use the dist folder as the root of the app
 
 ### What do I do from here?
 
