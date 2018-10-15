@@ -300,7 +300,8 @@ document.addEventListener('DOMContentLoaded', event => {
  */
 toggleMapButton.addEventListener('click', toggleGoogleMaps);
 
-/**
- * Unsent Reviews
- */
-document.body.addEventListener('online', DBHelper.sendUnsentReviews);
+// Listen for online events
+window.addEventListener('online', DBHelper.sendUnsentReviews);
+window.addEventListener('offline', function() {
+	console.log('Offline');
+});

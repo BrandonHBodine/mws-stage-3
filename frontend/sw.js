@@ -187,7 +187,6 @@ self.addEventListener('fetch', function(event) {
 		}
 
 		if (event.request.method === 'POST') {
-			console.log('review method', event.request.method);
 			event.respondWith(postRestaurantReviews(requestUrl, event.request));
 			return;
 		}
@@ -278,7 +277,6 @@ function getRestaurantReviews(requestUrl) {
 	// Try request first then fallback to
 	return fetch(requestUrl)
 		.then(function(res) {
-			console.log(res);
 			if (res.ok) {
 				let indexValue = res.clone();
 				// Put JSON in indexedDB
@@ -309,12 +307,12 @@ function postRestaurantReviews(requestUrl, postRequest) {
 	let requestName = params.get('name');
 	let requestRating = params.get('rating');
 	let requestComments = params.get('comments');
-	let requestID = params.get('restaurant_id');
+	let requestID = parseInt(params.get('restaurant_id'));
 	let requestHref = requestUrl.href;
 	let requestHost = requestUrl.host;
-	return fetch(requestUrl)
+	return fetch(postRequest)
 		.then(function(res) {
-			console.log('Post made it to server');
+			console.log('Post made it to server', res);
 			return res;
 		})
 		.catch(function() {
@@ -330,6 +328,23 @@ function postRestaurantReviews(requestUrl, postRequest) {
 			};
 			return idbRestaurants
 				.setUnsentReview(requestName, reviewContents)
+				.then(function() {
+					return idbRestaurants.getReviews(restaurantID).then(function(inside) {
+						return inside;
+					});
+				})
+				.then(function(reviewsToUpdate) {
+					reviewsToUpdate.push({
+						comments: requestComments,
+						name: requestName,
+						rating: requestRating,
+						restaurant_id: requestID
+					});
+					return idbRestaurants.setReviews(restaurantID, reviewsToUpdate);
+				})
+				.then(function(reviewUpdated) {
+					console.log('Review Updated', reviewUpdated);
+				})
 				.then(function() {
 					let init = {
 						status: 200,
@@ -364,9 +379,7 @@ function sendUnsentReviews() {
 			};
 			// Send requests
 			let reviewRequest = new Request(url, data);
-			console.log(reviewRequest);
 			fetch(reviewRequest).then(function(res) {
-				console.log('fetch res', res);
 				if (res.ok) {
 					return idbRestaurants.deleteUnsentReview(curReview.requestName);
 				}

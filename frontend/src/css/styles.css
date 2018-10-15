@@ -451,7 +451,6 @@ section#review-container {
   color: black;
 }
 
-
 #restaurants-list button.add-favorite {
   box-sizing: border-box;
   background-color: #fff;
@@ -561,6 +560,29 @@ section#review-container {
 
 h2.filter-header {
   text-align: center;
+}
+
+/* Lighthouse score */
+@media screen and (max-width: 320px) {
+  body,
+  td,
+  th,
+  p {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10px;
+    overflow-x: hidden;
+  }
+
+  h1.logo-header {
+    padding: 0;
+  }
+  
+  nav h1 a {
+    color: #fff;
+    font-size: 10px;
+    font-weight: 200;
+    letter-spacing: 1px;
+  }
 }
 
 @media screen and (min-width: 320px) {

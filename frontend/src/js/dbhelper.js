@@ -17,22 +17,21 @@ export class DBHelper {
 	 * Fetch all restaurants.
 	 */
 	static fetchRestaurants(callback) {
-		let xhr = new XMLHttpRequest();
-		xhr.open('GET', DBHelper.DATABASE_URL + '/restaurants');
-		xhr.onload = () => {
-			if (xhr.status === 200) {
+		fetch(DBHelper.DATABASE_URL + '/restaurants', { method: 'GET' })
+			.then(function(res) {
 				// Got a success response from server!
-				console.log(xhr);
-				const json = JSON.parse(xhr.responseText);
+				return res.text();
+			})
+			.then(function(text) {
+				const json = JSON.parse(text);
 				const restaurants = json;
 				callback(null, restaurants);
-			} else {
+			})
+			.catch(function(err) {
 				// Oops!. Got an error from server.
-				const error = `Request failed. Returned status of ${xhr.status}`;
+				const error = `Request failed. Returned status of ${err}`;
 				callback(error, null);
-			}
-		};
-		xhr.send();
+			});
 	}
 
 	/**
@@ -210,132 +209,6 @@ export class DBHelper {
 			.catch(err => {
 				console.log('Error in favorite toggle', err);
 			});
-	}
-
-	/**
-	 * Create a review form
-	 */
-	static createReviewForm(e) {
-		// Make Overlay for the reivew
-		let reviewOverlay = document.createElement('div');
-		reviewOverlay.id = 'review-overlay';
-
-		// Create the container for the form
-		let reviewForContainer = document.createElement('div');
-		reviewForContainer.id = 'add-review-container';
-		reviewOverlay.appendChild(reviewForContainer);
-
-		// Create Review Title
-		let reviewTitle = document.createElement('h3');
-		reviewTitle.innerText = 'Add Review';
-		reviewForContainer.appendChild(reviewTitle);
-
-		// Build the form
-		let reviewForm = document.createElement('form');
-		reviewForm.addEventListener('onsubmit', e => {
-			e.preventDefault();
-		});
-		reviewForContainer.appendChild(reviewForm);
-
-		// Create the inputs
-		let reviewName = DBHelper.createInput('name', 'text');
-		reviewForm.appendChild(reviewName);
-
-		let reviewRating = DBHelper.createInput('rating', 'select');
-		reviewForm.appendChild(reviewRating);
-
-		let reviewComments = DBHelper.createInput('comments', 'textarea');
-		reviewForm.appendChild(reviewComments);
-
-		let reviewThankYou = document.createElement('p');
-		reviewThankYou.style.display = 'none';
-		reviewThankYou.innerHTML = 'Review submitted, thank you!';
-		reviewThankYou.id = 'review-thank-you';
-		reviewForm.appendChild(reviewThankYou);
-
-		let reviewSubmitButton = document.createElement('button');
-		reviewSubmitButton.setAttribute('type', 'submit');
-		reviewSubmitButton.id = 'review-submit';
-		reviewSubmitButton.innerHTML = 'Submit';
-
-		// Handle Form submit
-		reviewSubmitButton.addEventListener('click', e => {
-			// prevent form submit so we can do it with a Fetch Post
-			e.preventDefault();
-			// sample post URL http://localhost:1337/reviews
-			let restaurant_id = document
-				.getElementById('add-review')
-				.getAttribute('data-restaurant-id');
-			let name = document.getElementById('name').value;
-			let rating = document.getElementById('rating').value;
-			let comments = document.getElementById('comments').value;
-			let url =
-				DBHelper.DATABASE_URL +
-				`/reviews/?restaurant_id=${restaurant_id}&name=${name}&rating=${rating}&comments=${comments}`;
-			let data = {
-				method: 'POST'
-			};
-			fetch(url, data).then(submitResponse => {
-				console.log('DPHELPER', submitResponse);
-				if (submitResponse.ok) {
-					reviewName.style.display = 'none';
-					reviewRating.style.display = 'none';
-					reviewComments.style.display = 'none';
-					reviewSubmitButton.style.display = 'none';
-					reviewThankYou.style.display = 'block';
-				}
-			});
-			// Update the page
-		});
-
-		reviewForm.appendChild(reviewSubmitButton);
-
-		// Close review form. Not very effecient
-		let closeReviewButton = document.createElement('button');
-		closeReviewButton.id = 'cancel-review';
-		closeReviewButton.innerHTML = 'Close';
-
-		closeReviewButton.addEventListener('click', e => {
-			let containerToRemove = document.getElementById('review-overlay');
-			containerToRemove.parentNode.removeChild(containerToRemove);
-		});
-
-		reviewForm.appendChild(closeReviewButton);
-
-		// Get the page container
-		let mainContent = document.getElementById('maincontent');
-
-		mainContent.appendChild(reviewOverlay);
-
-		document.getElementById('name').focus();
-	}
-	/**
-	 * Create Inputs with Labels
-	 */
-
-	static createInput(name, type) {
-		let tag = 'input';
-		let label = document.createElement('label');
-		let input;
-		if (type === 'textarea') {
-			input = document.createElement(type);
-		} else if (type === 'select') {
-			input = document.createElement(type);
-			for (let i = 5; i > 0; i--) {
-				let opt = document.createElement('option');
-				opt.innerHTML = `${i} Star`;
-				opt.value = i;
-				input.appendChild(opt);
-			}
-		} else {
-			input = document.createElement(tag);
-			input.setAttribute('type', type);
-		}
-		label.innerHTML = name.toUpperCase() + ':';
-		input.id = name;
-		input.setAttribute('name', name);
-		label.appendChild(input);
-		return label;
 	}
 
 	static sendUnsentReviews() {

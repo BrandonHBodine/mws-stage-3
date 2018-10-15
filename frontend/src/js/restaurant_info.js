@@ -102,7 +102,16 @@ function fillRestaurantHTML(restaurant = self.restaurant) {
 		.setAttribute('data-restaurant-id', restaurant.id);
 
 	// Get reviews
-	fetch(DBHelper.DATABASE_URL + `/reviews/?restaurant_id=${restaurant.id}`)
+	getReviews();
+}
+
+/**
+ * Get Reviews
+ */
+
+function getReviews() {
+	const id = getParameterByName('id');
+	fetch(DBHelper.DATABASE_URL + `/reviews/?restaurant_id=${id}`)
 		.then(res => {
 			return res.json();
 		})
@@ -145,6 +154,7 @@ function fillReviewsHTML(reviews = self.restaurant.reviews) {
 	const container = document.getElementById('reviews-container');
 	const title = document.createElement('h3');
 	title.innerHTML = 'Reviews';
+	title.id = 'reviews-title';
 	container.appendChild(title);
 
 	if (!reviews) {
@@ -171,10 +181,12 @@ function createReviewHTML(review) {
 	li.appendChild(name);
 
 	const date = document.createElement('p');
-	date.innerHTML = new Date(review.createdAt).toLocaleDateString();
+	if (review.createdAt) {
+		date.innerHTML = new Date(review.createdAt).toLocaleDateString();
+	} else {
+		date.innerHTML = new Date().toLocaleDateString();
+	}
 	li.appendChild(date);
-
-	// Maybe add a updated at field
 
 	const rating = document.createElement('p');
 	rating.innerHTML = `Rating: ${review.rating}`;
@@ -234,6 +246,145 @@ function toggleGoogleMaps() {
 }
 
 /**
+ * Create Inputs with Labels
+ */
+
+function createInput(name, type) {
+	let tag = 'input';
+	let label = document.createElement('label');
+	let input;
+	if (type === 'textarea') {
+		input = document.createElement(type);
+	} else if (type === 'select') {
+		input = document.createElement(type);
+		for (let i = 5; i > 0; i--) {
+			let opt = document.createElement('option');
+			opt.innerHTML = `${i} Star`;
+			opt.value = i;
+			input.appendChild(opt);
+		}
+	} else {
+		input = document.createElement(tag);
+		input.setAttribute('type', type);
+	}
+	label.innerHTML = name.toUpperCase() + ':';
+	input.id = name;
+	input.setAttribute('name', name);
+	label.appendChild(input);
+	return label;
+}
+
+/**
+ * Create a review form
+ */
+function createReviewForm(e) {
+	// Make Overlay for the reivew
+	let reviewOverlay = document.createElement('div');
+	reviewOverlay.id = 'review-overlay';
+
+	// Create the container for the form
+	let reviewForContainer = document.createElement('div');
+	reviewForContainer.id = 'add-review-container';
+	reviewOverlay.appendChild(reviewForContainer);
+
+	// Create Review Title
+	let reviewTitle = document.createElement('h3');
+	reviewTitle.innerText = 'Add Review';
+	reviewForContainer.appendChild(reviewTitle);
+
+	// Build the form
+	let reviewForm = document.createElement('form');
+	reviewForm.addEventListener('onsubmit', e => {
+		e.preventDefault();
+	});
+	reviewForContainer.appendChild(reviewForm);
+
+	// Create the inputs
+	let reviewName = createInput('name', 'text');
+	reviewForm.appendChild(reviewName);
+
+	let reviewRating = createInput('rating', 'select');
+	reviewForm.appendChild(reviewRating);
+
+	let reviewComments = createInput('comments', 'textarea');
+	reviewForm.appendChild(reviewComments);
+
+	let reviewThankYou = document.createElement('p');
+	reviewThankYou.style.display = 'none';
+	reviewThankYou.innerHTML = 'Review submitted, thank you!';
+	reviewThankYou.id = 'review-thank-you';
+	reviewForm.appendChild(reviewThankYou);
+
+	let reviewSubmitButton = document.createElement('button');
+	reviewSubmitButton.setAttribute('type', 'submit');
+	reviewSubmitButton.id = 'review-submit';
+	reviewSubmitButton.innerHTML = 'Submit';
+
+	// Handle Form submit
+	reviewSubmitButton.addEventListener('click', e => {
+		// prevent form submit so we can do it with a Fetch Post
+		e.preventDefault();
+		// sample post URL http://localhost:1337/reviews
+		let restaurant_id = document
+			.getElementById('add-review')
+			.getAttribute('data-restaurant-id');
+		let name = document.getElementById('name').value;
+		let rating = document.getElementById('rating').value;
+		let comments = document.getElementById('comments').value;
+		let url =
+			DBHelper.DATABASE_URL +
+			`/reviews/?restaurant_id=${restaurant_id}&name=${name}&rating=${rating}&comments=${comments}`;
+		let data = {
+			method: 'POST'
+		};
+		fetch(url, data)
+			.then(submitResponse => {
+				console.log(submitResponse);
+				if (submitResponse.ok) {
+					reviewName.style.display = 'none';
+					reviewRating.style.display = 'none';
+					reviewComments.style.display = 'none';
+					reviewSubmitButton.style.display = 'none';
+					reviewThankYou.style.display = 'block';
+				}
+			})
+			.then(function() {
+				console.log('Review Created');
+				document.getElementById('reviews-list').innerHTML = '';
+				let cont = document.getElementById('reviews-container');
+				let title = document.getElementById('reviews-title');
+				cont.removeChild(title);
+				getReviews();
+			})
+			.catch(function(err) {
+				console.log('Review was not created');
+			});
+		// Update the page
+	});
+
+	reviewForm.appendChild(reviewSubmitButton);
+
+	// Close review form. Not very effecient
+	let closeReviewButton = document.createElement('button');
+	closeReviewButton.id = 'cancel-review';
+	closeReviewButton.innerHTML = 'Close';
+
+	closeReviewButton.addEventListener('click', e => {
+		let containerToRemove = document.getElementById('review-overlay');
+		containerToRemove.parentNode.removeChild(containerToRemove);
+	});
+
+	reviewForm.appendChild(closeReviewButton);
+
+	// Get the page container
+	let mainContent = document.getElementById('maincontent');
+
+	mainContent.appendChild(reviewOverlay);
+
+	document.getElementById('name').focus();
+}
+
+/**
  * Get the google maps API stored in a promise
  *
  */
@@ -258,8 +409,9 @@ toggleMapButton.addEventListener('click', toggleGoogleMaps);
  */
 document
 	.getElementById('add-review')
-	.addEventListener('click', DBHelper.createReviewForm);
-	
+	.addEventListener('click', createReviewForm);
+
+// Listen for online events
 window.addEventListener('online', DBHelper.sendUnsentReviews);
 window.addEventListener('offline', function() {
 	console.log('Offline');
